@@ -1,7 +1,9 @@
 package main
 
 import (
-	"log"
+	"time"
+
+	log "github.com/JoshuaSchlichting/minecraft-server-automation/logger"
 )
 
 func main() {
@@ -15,11 +17,12 @@ func main() {
 	if err != nil {
 		log.Fatal("Error creating RCON adapter:", err)
 	}
-
-	client.PrintConnectedPlayers()
-	rcon.DiamondRoulette()
-	SayRandomSnappleFacts(client)
-	// playerLocation, err := rcon.GetPlayerLocation(players[0])
+	services := NewService(rcon)
+	services.StartPrintConnectedPlayers()
+	services.StartDiamondRoulette()
+	services.StartRandomSnappleFacts()
+	services.StartZombieHordeRaid(Coordinates{X: 375, Y: 63, Z: 537})
+	services.StartLightningStorms()
 	// if err != nil {
 	// 	log.Fatal("Error getting player location:", err)
 	// }

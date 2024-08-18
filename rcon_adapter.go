@@ -20,11 +20,11 @@ func NewRCONAdapter(c *rconClient) (*RCONAdapter, error) {
 }
 
 type Player struct {
-	Name string
-	UUID uuid.UUID
+	Name string    `json:"name"`
+	UUID uuid.UUID `json:"uuid"`
 }
 
-func (a *RCONAdapter) GetPlayers() ([]Player, error) {
+func (a *RCONAdapter) GetPlayers() (map[string]Player, error) {
 	playerListSentence, err := a.client.ListPlayers(true)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (a *RCONAdapter) GetPlayers() ([]Player, error) {
 
 	// remove everything before the first :
 	playerListSentence = strings.Split(playerListSentence, ": ")[1]
-	players := make([]Player, 0)
+	players := make(map[string]Player)
 	playerInfo := strings.Split(playerListSentence, ", ")
 
 	for _, info := range playerInfo {
@@ -50,7 +50,7 @@ func (a *RCONAdapter) GetPlayers() ([]Player, error) {
 		}
 
 		player := Player{Name: name, UUID: uuid}
-		players = append(players, player)
+		players[name] = player
 	}
 
 	return players, nil
@@ -128,7 +128,7 @@ func (a *RCONAdapter) SetBlock(blockType string, location Coordinates) {
 }
 
 func (a *RCONAdapter) SpawnZombie(location Coordinates, zombieCount int) {
-	a.client.SayMessage("Brace yourself, zombies are coming!!!")
+	a.client.Say("Brace yourself, zombies are coming!!!")
 	time.Sleep(3 * time.Second)
 	for i := 0; i < zombieCount; i++ {
 		summonResponse, err := a.client.SummonEntity("minecraft:zombie", location.X, location.Y, location.Z)
@@ -141,4 +141,8 @@ func (a *RCONAdapter) SpawnZombie(location Coordinates, zombieCount int) {
 
 func (a *RCONAdapter) SpawnVillager(location Coordinates) {
 	a.client.SummonEntity("minecraft:villager", location.X, location.Y, location.Z)
+}
+
+func (a *RCONAdapter) SummonLightning(location Coordinates) {
+	a.client.SummonEntity("minecraft:lightning_bolt", location.X, location.Y, location.Z)
 }

@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"sync"
 
+	log "github.com/JoshuaSchlichting/minecraft-server-automation/logger"
 	"github.com/gorcon/rcon"
 )
 
@@ -17,6 +18,7 @@ func (c *rconClient) Close() {
 }
 
 func (c *rconClient) Execute(command string) (string, error) {
+	log.Trace("Exeucting: ", command)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.conn.Execute(command)
@@ -392,10 +394,6 @@ func (c *rconClient) DismountEntity(target string) (string, error) {
 	return c.Execute("/ride " + target + " dismount")
 }
 
-func (c *rconClient) SayMessage(message string) (string, error) {
-	return c.Execute("/say " + message)
-}
-
 func (c *rconClient) ScheduleFunction(name string) (string, error) {
 	return c.Execute("/schedule function " + name)
 }
@@ -441,6 +439,12 @@ func (c *rconClient) SpreadPlayers(center string, spreadDistance, maxRange float
 
 func (c *rconClient) SetBlock(x, y, z int, block string) (string, error) {
 	return c.Execute("/setblock " + strconv.Itoa(x) + " " + strconv.Itoa(y) + " " + strconv.Itoa(z) + " " + block)
+}
+
+func (c *rconClient) TeleportPlayerToPlayer(targetPlayer, destinationPlayer string) (string, error) {
+	log.Info("Teleporting", targetPlayer, "to", destinationPlayer)
+	defer log.Info("Teleported", targetPlayer, "to", destinationPlayer)
+	return c.Execute("/teleport " + targetPlayer + " " + destinationPlayer)
 }
 
 func newRCONClient(hostname string, port int, password string) (*rconClient, error) {
