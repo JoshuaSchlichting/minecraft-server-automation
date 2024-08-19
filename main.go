@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+
+	log.SetLogLevel(log.DEBUG)
 	client, err := newRCONClient("192.168.1.xxx", 25575, "rcon_password")
 	if err != nil {
 		log.Fatal("Error creating RCON adapter:", err)
@@ -23,6 +25,7 @@ func main() {
 	services.StartRandomSnappleFacts()
 	services.StartZombieHordeRaid(Coordinates{X: 375, Y: 63, Z: 537})
 	services.StartLightningStorms()
+	services.StartMineRailGiveaway()
 	// if err != nil {
 	// 	log.Fatal("Error getting player location:", err)
 	// }
