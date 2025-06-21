@@ -3,20 +3,29 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorcon/rcon"
 )
 
 type RCONAdapter struct {
-	client *rconClient
+	rcon *rcon.Conn
 }
 
-func NewRCONAdapter(c *rconClient) (*RCONAdapter, error) {
+func NewRCONAdapter(hostname string, port int, password string) (*RCONAdapter, error) {
+	conn, err := rcon.Dial(hostname+":"+strconv.Itoa(port), password)
+	if err != nil {
+		return nil, err
+	}
+	return &RCONAdapter{rcon: conn}, nil
+}
 
-	return &RCONAdapter{client: c}, nil
+func (a *RCONAdapter) Close() error {
+	return a.rcon.Close()
 }
 
 type Player struct {
@@ -24,12 +33,12 @@ type Player struct {
 	UUID uuid.UUID `json:"uuid"`
 }
 
-func (a *RCONAdapter) GetPlayers() (map[string]Player, error) {
-	playerListSentence, err := a.client.ListPlayers(true)
+func (a *RCONAdapter) ListPlayerNames() (map[string]Player, error) {
+
+	playerListSentence, err := a.rcon.Execute("list uuids")
 	if err != nil {
 		return nil, err
 	}
-
 	// remove everything before the first :
 	playerListSentence = strings.Split(playerListSentence, ": ")[1]
 	players := make(map[string]Player)
@@ -40,7 +49,6 @@ func (a *RCONAdapter) GetPlayers() (map[string]Player, error) {
 		if len(playerData) != 2 {
 			continue
 		}
-
 		name := playerData[0]
 		uuidStr := strings.TrimSuffix(playerData[1], ")")
 
@@ -62,18 +70,31 @@ type Coordinates struct {
 	Z float64
 }
 
+type BlockCoordinates struct {
+	X int
+	Y int
+	Z int
+}
+
+func convertCoordinatesToBlockCoordinates(c Coordinates) BlockCoordinates {
+	return BlockCoordinates{
+		X: int(math.Floor(c.X)),
+		Y: int(math.Floor(c.Y)),
+		Z: int(math.Floor(c.Z)),
+	}
+}
+
 func (a *RCONAdapter) GetPlayerLocation(p Player) (Coordinates, error) {
 
-	result, err := a.client.Execute(fmt.Sprintf("/data get entity @p[name=%s] Pos", p.Name))
+	result, err := a.rcon.Execute(fmt.Sprintf("data get entity @p[name=%s] Pos", p.Name))
 	if err != nil {
-		return Coordinates{}, err
+		return Coordinates{}, fmt.Errorf("error with rcon execution: %w", err)
 	}
 
 	// Parse the coordinates from the result
 	coordsStr := strings.TrimPrefix(result, fmt.Sprintf("%s has the following entity data: [", p.Name))
 	coordsStr = strings.TrimSuffix(coordsStr, "]")
 	coordsData := strings.Split(coordsStr, ", ")
-
 	if len(coordsData) != 3 {
 		return Coordinates{}, fmt.Errorf("invalid coordinates data")
 	}
@@ -98,7 +119,7 @@ func (a *RCONAdapter) GetPlayerLocation(p Player) (Coordinates, error) {
 }
 
 func (a *RCONAdapter) GetPlayerHealth(p Player) (int, error) {
-	result, err := a.client.Execute(fmt.Sprintf("/data get entity @p[name=%s] Health", p.Name))
+	result, err := a.rcon.Execute(fmt.Sprintf("/data get entity @p[name=%s] Health", p.Name))
 	if err != nil {
 		return 0, err
 	}
@@ -115,7 +136,7 @@ func (a *RCONAdapter) GetPlayerHealth(p Player) (int, error) {
 }
 
 func (a *RCONAdapter) GivePlayerItem(p Player, item string, count int) error {
-	_, err := a.client.Execute(fmt.Sprintf("/give %s %s %d", p.Name, item, count))
+	_, err := a.rcon.Execute(fmt.Sprintf("give %s %s %d", p.Name, item, count))
 	if err != nil {
 		return err
 	}
@@ -123,15 +144,11 @@ func (a *RCONAdapter) GivePlayerItem(p Player, item string, count int) error {
 	return nil
 }
 
-func (a *RCONAdapter) SetBlock(blockType string, location Coordinates) {
-	a.client.SetBlock(int(location.X), int(location.Y), int(location.Z), blockType)
-}
-
 func (a *RCONAdapter) SpawnZombie(location Coordinates, zombieCount int) {
-	a.client.Say("Brace yourself, zombies are coming!!!")
+	a.Say("Brace yourself, zombies are coming!!!")
 	time.Sleep(3 * time.Second)
 	for i := 0; i < zombieCount; i++ {
-		summonResponse, err := a.client.SummonEntity("minecraft:zombie", location.X, location.Y, location.Z)
+		summonResponse, err := a.SummonEntity("minecraft:zombie", location.X, location.Y, location.Z)
 		if err != nil {
 			log.Fatal("Error summoning entity:", err)
 		}
@@ -140,9 +157,33 @@ func (a *RCONAdapter) SpawnZombie(location Coordinates, zombieCount int) {
 }
 
 func (a *RCONAdapter) SpawnVillager(location Coordinates) {
-	a.client.SummonEntity("minecraft:villager", location.X, location.Y, location.Z)
+	a.SummonEntity("minecraft:villager", location.X, location.Y, location.Z)
 }
 
 func (a *RCONAdapter) SummonLightning(location Coordinates) {
-	a.client.SummonEntity("minecraft:lightning_bolt", location.X, location.Y, location.Z)
+	a.SummonEntity("minecraft:lightning_bolt", location.X, location.Y, location.Z)
+}
+
+func (a *RCONAdapter) SendMessage(targets, message string) (string, error) {
+	return a.rcon.Execute("msg " + targets + " " + message)
+}
+
+func (a *RCONAdapter) SummonEntity(entity string, x, y, z float64) (string, error) {
+	return a.rcon.Execute("summon " + entity + " " + strconv.FormatFloat(x, 'f', -1, 64) + " " + strconv.FormatFloat(y, 'f', -1, 64) + " " + strconv.FormatFloat(z, 'f', -1, 64))
+}
+
+func (a *RCONAdapter) SetBlock(location BlockCoordinates, block string) (string, error) {
+	return a.rcon.Execute("setblock " + strconv.Itoa(int(location.X)) + " " + strconv.Itoa(int(location.Y)) + " " + strconv.Itoa(int(location.Z)) + " " + block)
+}
+
+func (a *RCONAdapter) Fill(start, end BlockCoordinates, block string) (string, error) {
+	return a.rcon.Execute("fill " + strconv.Itoa(int(start.X)) + " " + strconv.Itoa(int(start.Y)) + " " + strconv.Itoa(int(start.Z)) + " " + strconv.Itoa(int(end.X)) + " " + strconv.Itoa(int(end.Y)) + " " + strconv.Itoa(int(end.Z)) + " " + block)
+}
+
+func (a *RCONAdapter) Say(message string) (string, error) {
+	return a.rcon.Execute("say " + message)
+}
+
+func (a *RCONAdapter) GiveItem(targets, item string, count int) (string, error) {
+	return a.rcon.Execute("give " + targets + " " + item + " " + strconv.Itoa(count))
 }

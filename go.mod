@@ -1,8 +1,10 @@
 module github.com/JoshuaSchlichting/minecraft-server-automation
 
-go 1.22.4
+go 1.23
 
-require github.com/gorcon/rcon v1.3.5
+toolchain go1.24.0
+
+require github.com/gorcon/rcon v1.4.0
 
 require (
 	github.com/google/uuid v1.6.0
