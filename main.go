@@ -16,6 +16,8 @@ func main() {
 	create := flag.Bool("create", false, "A boolean flag to create the structure")
 	destroy := flag.Bool("destroy", false, "A boolean flag to destroy the structure")
 	give := flag.String("give", "", "give this item to the player (player:item), trailed by :<count> if more than one is desired")
+	creativePlayer := flag.String("creative-mode", "", "enable creative mode for the player")
+	survivalPlayer := flag.String("survival-mode", "", "enable survivalmode for the player")
 	flag.Parse()
 
 	if *create && *destroy {
@@ -62,13 +64,29 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *creativePlayer != "" {
+		log.Info(fmt.Sprintf("Enabling creative mode for player %s", *creativePlayer))
+		_, err := rcon.CreativeMode(*creativePlayer)
+		if err != nil {
+			log.Error("Error enabling creative mode:", err)
+		}
+		os.Exit(0)
+	}
+	if *survivalPlayer != "" {
+		log.Info(fmt.Sprintf("Enabling survival mode for player %s", *survivalPlayer))
+		_, err := rcon.SurvivalMode(*survivalPlayer)
+		if err != nil {
+			log.Error("Error enabling survival mode:", err)
+		}
+		os.Exit(0)
+	}
 	services := NewService(rcon)
 	services.StartPrintConnectedPlayers()
-	// services.StartDiamondRoulette()
-	// 	// services.StartRandomSnappleFacts()
+	services.StartDiamondRoulette()
+	services.StartRandomSnappleFacts()
 	// 	// services.StartZombieHordeRaid(Coordinates{X: 375, Y: 63, Z: 537})
 	// 	// services.StartLightningStorms()
-	// 	// services.StartMineRailGiveaway()
+	services.StartMineRailGiveaway()
 	// 	// _, err = client.GiveItem("SchlitzMaltLiqy", `minecraft:glass`, 64)
 	// 	// _, err = rcon.GiveItem("KillerKora", `minecraft:sheep_spawn_egg`, 64)
 	// if err != nil {
@@ -81,12 +99,12 @@ func main() {
 	}
 	log.Info(players)
 
-	// killerKorasPos, err := rcon.GetPlayerLocation(players["KillerKora"])
-	// if err != nil {
-	// 	log.Error("Error getting player location:", err)
-	// 	return
-	// }
-	// log.Info(killerKorasPos)
+	killerKorasPos, err := rcon.GetPlayerLocation(players["KillerKora"])
+	if err != nil {
+		log.Error("error getting player location:", err)
+		return
+	}
+	log.Info(killerKorasPos)
 	// blockStartingPosition := BlockCoordinates{
 	// 	X: 434,
 	// 	Y: 100,
@@ -98,9 +116,9 @@ func main() {
 	// zombieAttackOnPlayer(rcon, players["KillerKora"])
 	log.Info("Server is running...")
 
-	BuildRail(*rcon, East, BlockCoordinates{456, 59, -229}, BlockCoordinates{510, 59, -229})
+	// BuildRail(*rcon, East, BlockCoordinates{585, 68, -2493}, BlockCoordinates{6100, 68, -2493})
 
-	// select {}
+	select {}
 }
 
 func zombieAttackOnPlayer(rcon *RCONAdapter, player Player) {

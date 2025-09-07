@@ -36,14 +36,22 @@ func BuildRail(rcon RCONAdapter, direction Direction, start BlockCoordinates, en
 	log.Info("Setting rails")
 	blockRangeIndex := 0
 	for _, block := range railBlocks {
-		var blockLeft, blockRight BlockCoordinates
+		var blockLeft, blockLeftTwo, blockLeftDownOne, blockRight, blockRightTwo, blockRightDownOne BlockCoordinates
 		switch direction {
 		case North, South:
 			blockLeft = BlockCoordinates{X: block.X - 1, Y: block.Y, Z: block.Z}
+			blockLeftTwo = BlockCoordinates{X: block.X - 2, Y: block.Y, Z: block.Z}
+			blockLeftDownOne = BlockCoordinates{X: block.X - 1, Y: block.Y - 1, Z: block.Z}
 			blockRight = BlockCoordinates{X: block.X + 1, Y: block.Y, Z: block.Z}
+			blockRightTwo = BlockCoordinates{X: block.X + 2, Y: block.Y, Z: block.Z}
+			blockRightDownOne = BlockCoordinates{X: block.X + 1, Y: block.Y - 1, Z: block.Z}
 		case East, West:
 			blockLeft = BlockCoordinates{X: block.X, Y: block.Y, Z: block.Z - 1}
+			blockLeftTwo = BlockCoordinates{X: block.X, Y: block.Y, Z: block.Z - 2}
+			blockLeftDownOne = BlockCoordinates{X: block.X, Y: block.Y - 1, Z: block.Z - 1}
 			blockRight = BlockCoordinates{X: block.X, Y: block.Y, Z: block.Z + 1}
+			blockRightTwo = BlockCoordinates{X: block.X, Y: block.Y, Z: block.Z + 2}
+			blockRightDownOne = BlockCoordinates{X: block.X, Y: block.Y - 1, Z: block.Z + 1}
 		}
 		blockbeneath := BlockCoordinates{X: block.X, Y: block.Y - 1, Z: block.Z}
 		rcon.SetBlock(blockbeneath, "minecraft:glass")
@@ -57,8 +65,13 @@ func BuildRail(rcon RCONAdapter, direction Direction, start BlockCoordinates, en
 		rcon.SetBlock(twoBlocksAbove, "minecraft:glass")
 		if blockRangeIndex%5 == 0 {
 			rcon.SetBlock(blockLeft, "minecraft:torch")
+			rcon.SetBlock(blockLeftTwo, "minecraft:glass")
 			rcon.SetBlock(block, "minecraft:powered_rail[shape="+direction.String()+"]")
 			rcon.SetBlock(blockRight, "minecraft:redstone_torch")
+			rcon.SetBlock(blockRightTwo, "minecraft:glass")
+			rcon.SetBlock(blockRightDownOne, "minecraft:glass")
+			rcon.SetBlock(blockLeftDownOne, "minecraft:glass")
+
 			blockRangeIndex++
 			continue
 		}

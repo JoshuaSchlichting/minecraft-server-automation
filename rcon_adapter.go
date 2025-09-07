@@ -187,3 +187,11 @@ func (a *RCONAdapter) Say(message string) (string, error) {
 func (a *RCONAdapter) GiveItem(targets, item string, count int) (string, error) {
 	return a.rcon.Execute("give " + targets + " " + item + " " + strconv.Itoa(count))
 }
+
+func (a *RCONAdapter) CreativeMode(player string) (string, error) {
+	return a.rcon.Execute("/gamemode creative " + player)
+}
+
+func (a *RCONAdapter) SurvivalMode(player string) (string, error) {
+	return a.rcon.Execute("/gamemode survival " + player)
+}
