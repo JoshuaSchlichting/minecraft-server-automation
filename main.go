@@ -95,16 +95,22 @@ func main() {
 	// GiveEnchantedDiamondArmorSet("KillerKora", client)
 	players, err := rcon.ListPlayerNames()
 	if err != nil {
-		log.Fatal("Error getting players:", err)
-	}
-	log.Info(players)
+		log.Error("Error getting players:", err)
+	} else {
+		log.Info(players)
 
-	killerKorasPos, err := rcon.GetPlayerLocation(players["KillerKora"])
-	if err != nil {
-		log.Error("error getting player location:", err)
-		return
+		// Only attempt player-specific lookups if we successfully fetched the player list
+		if player, ok := players["KillerKora"]; ok {
+			killerKorasPos, err := rcon.GetPlayerLocation(player)
+			if err != nil {
+				log.Error("error getting player location:", err)
+			} else {
+				log.Info(killerKorasPos)
+			}
+		} else {
+			log.Error("player KillerKora not found in player list; skipping location lookup")
+		}
 	}
-	log.Info(killerKorasPos)
 	// blockStartingPosition := BlockCoordinates{
 	// 	X: 434,
 	// 	Y: 100,

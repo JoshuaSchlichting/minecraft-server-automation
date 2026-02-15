@@ -7,6 +7,11 @@ import (
 	"golang.org/x/exp/rand"
 )
 
+const (
+	rconBackoffBase = 5 * time.Second
+	rconBackoffMax  = 5 * time.Minute
+)
+
 type Service struct {
 	rcon *RCONAdapter
 }
@@ -32,12 +37,28 @@ func (s *Service) StartZombieHordeRaid(c Coordinates) {
 func (s *Service) StartDiamondRoulette() {
 	log.Debug("Starting diamond roulette service...")
 	go func() {
+		backoff := time.Duration(0)
+
 		for {
 			time.Sleep(time.Duration(rand.Intn(120)) * time.Minute)
+
 			players, err := s.rcon.ListPlayerNames()
 			if err != nil {
-				log.Fatal("Error getting players:", err)
+				if backoff == 0 {
+					backoff = rconBackoffBase
+				} else {
+					backoff *= 2
+					if backoff > rconBackoffMax {
+						backoff = rconBackoffMax
+					}
+				}
+				log.Error("Error getting players:", err, " - backing off for ", backoff)
+				time.Sleep(backoff)
+				continue
 			}
+
+			// reset backoff on success
+			backoff = 0
 
 			for _, player := range players {
 				if rand.Intn(2) == 0 {
@@ -60,7 +81,11 @@ func (s *Service) StartRandomSnappleFacts() {
 			if randomBool {
 				continue
 			}
-			s.rcon.Say(getRandomSnappleFact())
+			// Use tellraw so the message doesn't show up as `[rcon]` in chat.
+			_, err := s.rcon.TellrawBroadcast(getRandomSnappleFact())
+			if err != nil {
+				log.Error("Error broadcasting Snapple fact:", err)
+			}
 			time.Sleep(15 * time.Minute)
 		}
 	}()
@@ -69,12 +94,26 @@ func (s *Service) StartRandomSnappleFacts() {
 // // StartPrintConnectedPlayers prints the connected players every 5 minutes
 func (s *Service) StartPrintConnectedPlayers() {
 	go func() {
+		backoff := time.Duration(0)
+
 		for {
 			players, err := s.rcon.ListPlayerNames()
 			if err != nil {
-				log.Error("Error getting players:", err)
+				if backoff == 0 {
+					backoff = rconBackoffBase
+				} else {
+					backoff *= 2
+					if backoff > rconBackoffMax {
+						backoff = rconBackoffMax
+					}
+				}
+				log.Error("Error getting players:", err, " - backing off for ", backoff)
+				time.Sleep(backoff)
 				continue
 			}
+
+			// reset backoff on success
+			backoff = 0
 
 			log.Info(players)
 			time.Sleep(5 * time.Minute)
@@ -123,13 +162,28 @@ func (s *Service) StartLightningStorms() {
 func (s *Service) StartMineRailGiveaway() {
 	log.Debug("Starting minecart giveaway service...")
 	go func() {
+		backoff := time.Duration(0)
+
 		for {
 			time.Sleep(time.Duration(rand.Intn(60)) * time.Minute)
+
 			players, err := s.rcon.ListPlayerNames()
 			if err != nil {
-				log.Error("Error getting players:", err)
+				if backoff == 0 {
+					backoff = rconBackoffBase
+				} else {
+					backoff *= 2
+					if backoff > rconBackoffMax {
+						backoff = rconBackoffMax
+					}
+				}
+				log.Error("Error getting players:", err, " - backing off for ", backoff)
+				time.Sleep(backoff)
 				continue
 			}
+
+			// reset backoff on success
+			backoff = 0
 
 			for _, player := range players {
 				if rand.Intn(2) == 0 {
